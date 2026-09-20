@@ -1,9 +1,7 @@
 # ThreatLens
 
-AI-powered defensive threat intelligence dashboard built with Streamlit.
-Checks an IP address, domain, or URL against **VirusTotal** and **WHOIS**,
-then sends the collected evidence to **Gemini** for a structured,
-evidence-based verdict.
+
+
 
 ## 1. Install dependencies
 

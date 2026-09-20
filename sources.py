@@ -1,23 +1,4 @@
-"""
-sources.py
-----------
-This module contains ALL source-specific logic for ThreatLens:
 
-- IOC (Indicator of Compromise) type detection
-- Intelligence source functions (VirusTotal, WHOIS)
-- The SOURCE_REGISTRY, which is the single source of truth for which
-  sources exist and how to call them
-- Gemini prompt construction, API calling, and response parsing
-
-app.py never contains source-specific logic. Every source function
-returns the SAME structure, so app.py and the Gemini prompt builder
-can treat every source generically. To add a new source later:
-
-    1. Write a new function here that returns the standard result dict.
-    2. Add one line to SOURCE_REGISTRY.
-
-That's it -- no changes to app.py are required.
-"""
 
 from __future__ import annotations
 
@@ -36,9 +17,7 @@ except ImportError:  # pragma: no cover - handled at runtime with a clear error
     pywhois = None
 
 
-# ---------------------------------------------------------------------------
-# Configuration / secrets access
-# ---------------------------------------------------------------------------
+
 
 VIRUSTOTAL_API_URL = "https://www.virustotal.com/api/v3"
 REQUEST_TIMEOUT_SECONDS = 15
@@ -65,9 +44,6 @@ def get_secret(key: str) -> str | None:
     return os.environ.get(key)
 
 
-# ---------------------------------------------------------------------------
-# Standard result structure
-# ---------------------------------------------------------------------------
 
 def make_result(source: str, success: bool, data: Any = None, error: str | None = None) -> dict:
     """Build the standard, consistent result structure every source returns."""
@@ -79,12 +55,7 @@ def make_result(source: str, success: bool, data: Any = None, error: str | None 
     }
 
 
-# ---------------------------------------------------------------------------
-# IOC detection
-# ---------------------------------------------------------------------------
 
-# A reasonably strict domain regex: labels of letters/digits/hyphens,
-# separated by dots, ending in a plausible TLD.
 _DOMAIN_REGEX = re.compile(
     r"^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)"
     r"(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*\.[A-Za-z]{2,63}$"
@@ -135,9 +106,7 @@ def extract_domain_or_ip_for_whois(ioc: str, ioc_type: str) -> str | None:
     return None
 
 
-# ---------------------------------------------------------------------------
-# VirusTotal source
-# ---------------------------------------------------------------------------
+
 
 def _vt_headers() -> dict | None:
     api_key = get_secret("VIRUSTOTAL_API_KEY")
@@ -244,9 +213,7 @@ def get_virustotal(ioc: str, ioc_type: str) -> dict:
     return make_result(source_name, True, summary, None)
 
 
-# ---------------------------------------------------------------------------
-# WHOIS source
-# ---------------------------------------------------------------------------
+
 
 def _stringify(value: Any) -> Any:
     """Convert datetimes/lists of datetimes into JSON-friendly strings."""
@@ -305,8 +272,6 @@ def get_whois(ioc: str, ioc_type: str) -> dict:
         "updated_date": _stringify(getattr(record, "updated_date", None)),
         "name_servers": _stringify(getattr(record, "name_servers", None)),
         "status": _stringify(getattr(record, "status", None)),
-        # Registrant org/country only -- avoid exposing personal data that
-        # most registries redact anyway, and only surface what's public.
         "registrant_org": _stringify(getattr(record, "org", None)),
         "registrant_country": _stringify(getattr(record, "country", None)),
     }
@@ -314,27 +279,13 @@ def get_whois(ioc: str, ioc_type: str) -> dict:
     return make_result(source_name, True, data, None)
 
 
-# ---------------------------------------------------------------------------
-# SOURCE REGISTRY -- the single source of truth
-# ---------------------------------------------------------------------------
-# Every entry maps a display name to a callable with signature
-# (ioc: str, ioc_type: str) -> dict (standard result structure).
-#
-# To add a new source (e.g. AbuseIPDB, Shodan, URLScan):
-#   1. Write get_abuseipdb(ioc, ioc_type) -> dict here, following the same
-#      make_result(...) pattern used above.
-#   2. Add "AbuseIPDB": get_abuseipdb to the dict below.
-# app.py's orchestration loop requires no changes at all.
-
 SOURCE_REGISTRY: dict[str, Callable[[str, str], dict]] = {
     "VirusTotal": get_virustotal,
     "WHOIS": get_whois,
 }
 
 
-# ---------------------------------------------------------------------------
-# Gemini prompt construction, calling, and parsing
-# ---------------------------------------------------------------------------
+
 
 _KNOWLEDGE_LEVEL_INSTRUCTIONS = {
     "Beginner": (
