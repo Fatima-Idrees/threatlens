@@ -1,0 +1,5 @@
+streamlit>=1.32
+requests>=2.31
+python-dotenv>=1.0
+python-whois>=0.9
+google-genai>=0.3

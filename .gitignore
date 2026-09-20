@@ -1,0 +1,14 @@
+# Virtual environment
+venv/
+
+# Secrets - NEVER commit these
+.streamlit/secrets.toml
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS/editor junk
+.DS_Store
+.vscode/
